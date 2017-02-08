@@ -1,0 +1,131 @@
+---
+title: Statistical Inference Course Project Part 2 - Explore and Analyze Tooth Growth dataset in R - (Johns Hopkins Data Science Certification)
+author: "MD Alamgir, Ph.D."
+date: "October 22, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Overview 
+
+ToothGrowth data in the R datasets package is analyzed. Basic exploratory analysis is performed using R for the sixty observations in the dataset for tooth growth length which depend on the orange juice (OJ) and vitamin C (VC) supplements. Each of the supplements are given to ten individuals at rates 0.5, 1, and 2 mg/day. The data trends and dependencies are visualized using panel plots using the ggplot2 plotting package in R. Hypothesis tests at 5% probability level are used, using two group t-test, to test the equality of means of tooth growth length for suupplements OJ and VC, and for dose rates 0.5 mg/day vs. 2 mg/day, and 1 mg/day vs. 2mg/day. Null hypothesis on equality of means were established and tested. Conclusions are reported on the outcome of the hypothesis tests, and corresponding 95% confidence intervals. 
+
+###Set working directory
+
+```{r }
+setwd("C:/Users/MD/Documents/Week4_Statistical_Inference")
+
+```
+- Load libraries needed for data processing and analysis
+```{r load libraries}
+library(datasets)
+library(ggplot2)
+```
+
+##Load Data
+
+```{r DataSummary}
+data("ToothGrowth")
+head(ToothGrowth, 10)
+tail(ToothGrowth, 10)
+summary(ToothGrowth)
+str(ToothGrowth)
+```
+##Explore the Data
+
+From the data sample listing (head/tail)and summary reports, we see that there are 60 tooth growth length observations, 30 each for supplement type "OJ", and "VC". For each supplement there are ten observations each with dosages 0.5, 1.0, and 2.0 mg/day
+
+Use qplot in the ggplot2 package, with "facets", to explore dependencies and trends of tooth growth length vs. supplement type, and versus dosage. We can see from the plots that 
+- Tooth growth length deoends on dose (increases with dose). 
+- The dependency of mean tooth growth length vs. supplement types "OJ" and "VC": "OJ" supplement generally shows more growth,
+- The above dependencies will be further analysed via Hypothesis tests (t.test) later in this report.
+
+```{r }
+qplot(supp, len, data=ToothGrowth, facets=.~dose,col="red")
+
+```
+
+###Assumptions
+- two group t-tests are performed to analyze how the mean of tooth growth length differed among the supplements and for the three dosags. Since sample sizes were not large for these tests (60 observations, 30 per supplement, 10 per supplement/dose), t-test is appropriate.
+- Equal variance for each of the two groups is assumed for the t tests. The actual standard deviations (sqrt(variance)) of the samples were calculated and shown to be not very different.
+- Uunpaired two group t-tests were performed. From the data set it was not known whether the same people were given both supplements or the various dosages. Hence unpaired group test seems reasonable.
+
+
+## Hypothesis Tests
+
+###Tooth Growth Length vs. Supplement
+
+Two group t tests are performed to test NULL hypothesis that the means are equal for:
+- Supplements "OJ" vs. "VC"
+- Dose 0.5 mg/day vs. 1.0 mg/day, and 1.0 mg/day vs. 2.0 mg/day
+These hypotesis tests for equality of means of the groups are shown below.
+
+```{r Hypothesis test for mean tooth growth length difference}
+#NULL Hypothesis H0=Mean tooth growth length for supplements "OJ"" and "VC" are equal within the 5% probability level(i.e. difference in means is equal to zero). If p>0.05, reject the NULL hypthesis and accept the alternate hypotheiss below
+
+#Alternative Hypothesis Ha: Difference in mean tooth growth length for supplements "OJ"" and "VC" are NOT equal.
+
+lenOJ<-ToothGrowth$len[ToothGrowth$supp=="OJ"]
+lenVC<-ToothGrowth$len[ToothGrowth$supp=="VC"]
+
+# Standard Deviation of tooth growth length for"OJ" and "VC" supplements
+sdlenOJ<-sd(lenOJ)
+sdlenVC<-sd(lenVC)
+
+sdlenOJ
+sdlenVC
+
+#Perform two group t-test using t.test() function in R.
+
+t.test(lenOJ, lenVC, paired = FALSE, var.equal = FALSE)
+
+# Since p-value is >0.05, the NULL hypothesis is rejected. Also the 95% confidence interval shown below includes zero.
+```
+###Tooth Growth Length vs. Dose
+
+Two group t tests are performed to test NULL hypothesis that the means are equal for:
+- Dose 0.5 mg/day vs. 1.0 mg/day, and 
+- 1.0 mg/day vs. 2.0 mg/day
+
+```{r }
+
+#NULL Hypothesis H0=Mean tooth growth length for doses 0.5 and 1 are equal within the 5% probability level(i.e. difference in means is equal to zero). If p>0.05, reject the NULL hypthesis and accept the alternate hypotheiss below
+
+#Alternative Hypothesis Ha: Difference in mean tooth growth length for doses 0.5 and 1.0 are NOT equal.
+
+len05<-ToothGrowth$len[ToothGrowth$dose=="0.5"]
+len10<-ToothGrowth$len[ToothGrowth$dose=="1"]
+len20<-ToothGrowth$len[ToothGrowth$dose=="2"]
+
+# Standard Deviation of tooth growth length for"OJ" and "VC" supplements
+sdlen05<-sd(len05)
+sdlen10<-sd(len10)
+sdlen20<-sd(len20)
+
+sdlen05
+sdlen10
+sdlen20
+
+#Perform two group t-test using t.test() function in R, not paired.
+
+t.test(len05, len10, paired = FALSE, var.equal = FALSE)
+
+#NULL Hypothesis H0=Mean tooth growth length for doses 1 and 2 are equal within the 5% probability level(i.e. difference in means is equal to zero). If p>0.05, reject the NULL hypthesis and accept the alternate hypotheiss below
+
+#Alternative Hypothesis Ha: Difference in mean tooth growth length for doses 1 and 2 are NOT equal.
+
+t.test(len10, len20, paired = FALSE, var.equal = FALSE)
+
+```
+
+### Conclusions
+The following conclusiions apply to the ToothGrowth dataset.
+
+- As seen in the panel plots, Tooth growth length deoends on dose (increases with dose). 
+- Hypothesis test using two group t-test shows that the mean tooth growth lengths are equal at the 95% confidence level (p>0.05) for the "OJ" andthe "VC" supplements.The 95% confidence level includes the zero.
+- Hypothesis test using two group t-test shows that the mean tooth growth lengths are NOT equal at the 95% confidence level (p<0.05) for the dosages 0.5 mg/day vs. 1 mg/day, and for 1 mg/day vs. 2 mg/day.The 95% confidence level does not include include zero for these dosage related hypothesis tests. 
+
+
+####[End of Report]

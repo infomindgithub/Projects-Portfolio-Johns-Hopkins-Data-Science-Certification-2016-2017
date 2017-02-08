@@ -1,0 +1,178 @@
+---
+title: "Machine Learning: Prediction Model Documentation"
+author: "MD Alamgir Ph.D."
+date: "January 06, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+###Synopsis
+
+This Machine Learning project uses data from accelerometers on the belt, forearm, arm, and dumbell of six research study participants. Problem description and data sources are listed Appendix C.
+
+ * Training data (19622 observations) consist of accelerometer data and a label(variable=classe) identifying the type of the activity of the participant.
+
+ * The project goal is to predict the identifying labels(variable=classe) for the test data using machine learning models. Algorithms with multi-class prediction capability are needed since there are five classes (labels=A, B, C, D, and E) in the "classe" variable.
+
+ * Testing data consists of twenty observations of accelerometer data, without the identifying label.
+
+ * The training data cleaning and preparation is described below. The cleaned training data was partitioned into a training set (75% of original training data), and a validation set(25% of original training data). Basic Exploratory Analysis is covered in Appendix B.
+
+ * Two supervised machine learning models were trained: Random forest(rf), and Linear Discriminant Analysis(lda). Both rf and lda are appropriate for multiclass classification predictive modeling, and are appropriate candidates for this project. The lda model study is in Appendix A. The Random Forest model was found to have quite high accuracy of 99.7% while the lda model showed much lower accuracy of ~72%. Therefore, the Random Forest Model was used to predict variable "classe" of the test dataset (Table 1).
+
+
+###Data Loading and Prepration
+* Exploratory Analysis is covered in Appendix B
+* Data loading, cleaning, and data partitioning covered below.
+
+```{r, cache=TRUE}
+#set Working Directory
+setwd("C:/Users/MD/Documents/! Coursera/jhds/Week4_Machine_Learning/project")
+library(ggplot2)
+library(caret)
+library(dplyr)
+# LOad data
+Training <- read.csv("pml-training.csv")
+Data_test <- read.csv("pml-testing.csv")
+
+set.seed(32987)
+
+# Reduce variables(features) to fit, as indicated in )items 1, 2, and 3 below
+
+# Item 1: Remove variables (columns in dataset) with nearly zero variance using the nearZeroVar function
+nZVar <- nearZeroVar(Training)
+Data_Training1 <- Training[, -nZVar]
+
+# Item 2: Remove variables(columns in data set) that have > 95% "NA" entries
+NA95pct <- sapply(Data_Training1, function(x) mean(is.na(x))) > 0.95
+Data_Training2 <- Data_Training1[, NA95pct==F]
+
+#Item 3: Remove first five columns as these are not relevant for prediction of "classe" labels.
+Data_Training3 <- Data_Training2[, -(1:5)]
+
+
+# Split training data into two sets: Data_Training (75%), and Data_validation (25%).
+
+inTrain <- createDataPartition(y=Data_Training3$classe, p=0.75, list=F)
+Data_Training <- Data_Training3[inTrain, ]
+Data_validation <- Data_Training3[-inTrain, ]
+
+
+# Models Fitted: Two models are fitted to Data_Training ("rf" model below", and the "lda" model analysis documented in Appendix A). Then prediction accuracy is determined using the Data_validation dataset. The model is applied to the test data set. Fitted the models on Data_Training, and used the "train" function with 3-fold cross-validation for selecting the appropriate tuning parameters for the model.
+
+# Cross Validation:
+
+fitControl <- trainControl(method="cv", number=3, verboseIter=F)
+
+# Fit model on Data_Training
+fit <- train(classe ~ ., data=Data_Training, method="rf", trControl=fitControl)
+
+fit$finalModel
+
+# Model Evaluation: Use model to predict classe in validation set (Data_validation)
+prediction <- predict(fit, newdata=Data_validation)
+
+# Use confusion matrix to get estimate of out-of-sample error
+confusionMatrix(Data_validation$classe, prediction)
+
+# The accuracy of the Random Forest model in predicting the validation data set is seen to be very high (0.9973) or 99.7%. 
+
+# Test Set Predictions: Use the model fitted on Data_Training to predict the label for the observations in Data_test, and output the predictions.
+
+# Predict on test set
+prediction <- predict(fit, newdata=Data_test)
+
+# Convert predictions to character vector
+prediction <- as.character(prediction)
+
+# Output the predicted results
+predresult<-data.frame(testdata_ID=Data_test$problem_id, Predicted_Classe=prediction)
+
+# TABLE 1: Prediction Results
+
+predresult
+
+```
+###Conclusions
+
+1. Two supervised machine learning models have been used in this project: Random Forest (rf), and Linear Discriminant Analysis (lda). The Random Forest model yielded very high accuracy ~ 0.997 when the trained model was applied to the validation dataset. The lda model yielded lower accuracy, ~ 0.72 (Appendix A). The Random Forest Model is recommended and used for this classification prediction study.
+
+2. The prediction of the labels for the  "classe" variable for the twenty observations in the test dataset is provided in TABLE 1.
+
+###APPENDICES
+
+####Appendix A - Fitting Linear Discriminant Analysis ("lda") Model
+
+```{r, fit "lda" model}
+library(ggplot2)
+library(caret)
+library(dplyr)
+
+# Use 3-fold cross-validation (CV) to select optimal tuning parameters
+fitControl_lda <- trainControl(method="cv", number=3, verboseIter=F)
+
+# Fit model on Data_Training
+fitlda <- train(classe ~ ., data=Data_Training, method="lda", trControl=fitControl_lda)
+
+# Use model to predict classe in validation set (Data_validation)
+prediction_ldav <- predict(fitlda, newdata=Data_validation)
+
+# Evaluate confusion matrix to get estimate of out-of-sample error
+confusionMatrix(Data_validation$classe, prediction_ldav)
+
+# The accuracy is ~ 72%, less than Random Forest("rf") model
+# Test Set Predictions are made below. [Note: these presictions will not be considered since the accuracy of the Linear Discriminant Analysis model is less than that of the Random Forest model. Predictions using the "rf" model reported in Table 1 earlier will be considered as more accurate output of this project.
+# Use the model fitted on Data_Training to predict the label for the observations in Data_test, and output the predictions.
+
+# prediction of test set using lda model
+prediction_lda <- predict(fitlda, newdata=Data_test)
+
+# convert predictions to character vector
+prediction_lda <- as.character(prediction_lda)
+
+# Output the predicted results for the lda model
+predresult_lda<-data.frame(testdata_ID=Data_test$problem_id, Predicted_Classe=prediction_lda)
+predresult_lda
+```
+
+####Appendix B - Exploratory Analysis
+
+```{r, Exploratory Analysis}
+#Number of Rows and columns:
+
+# Before data cleaning:
+dim(Training)
+
+# After data cleaning have fewer columns (54 vs. 160). # Many columns have mostly "NA"s. Also number of rows is ~75% of original after partitioning 25% to the validation data set.
+dim(Data_Training)
+
+# Columns in training set after data cleaning, and used for training using "rf" and "lda" models
+colnames(Data_Training)
+
+# Class Labels in training dataset (factors in classe)
+levels(Data_Training$classe)
+
+```
+
+####Appendix C - Project Description, Data Sources, and Requirements
+
+*Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+*More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+#####Data
+
+*The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+*The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+*The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
+
+*The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set.
+
+####[End of Report]
